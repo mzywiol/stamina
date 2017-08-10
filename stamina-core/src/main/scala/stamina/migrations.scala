@@ -36,7 +36,7 @@ package migrations {
 
   /**
    * A `Migrator[R, V]` can migrate raw values of type R from older
-   * versions to version `V` or from version one generation younger
+   * versions to version `V` or from version one generation newer
    * than `V` back to `V` by applying a specific `Migration[R]` to it.
    *
    * You can create instances of `Migrator[R, V]` by using
@@ -62,15 +62,15 @@ package migrations {
    *   from[JsValue, V1]
    *     .to[V2](_.update('cart / 'items / * / 'price ! set[Int](1000)))
    *     .to[V3](_.update('timestamp ! set[Long](System.currentTimeMillis - 3600000L)))
-   *     .backFrom[V4](_.update('cart / 'items / * / 'name ! set[String]("unknown")))
+   *     .andBackFrom[V4](_.update('cart / 'items / * / 'name ! set[String]("unknown")))
    * )
    * }}}
    *
    *  @tparam R The type of raw data being migrated. In the JSON implementation this would be `JsValue`.
    *  @tparam V The "current" version of this Migrator, i.e. it can migrate values from V1 to this version or any version in between
-    *            and optionally from next version back to this one.
+   *            and optionally from next version back to this one.
    */
-  class Migrator[R, V <: Version : VersionInfo] private[stamina](migrations: Map[Int, Migration[R]] = Map.empty, backwardMigration: Option[Migration[R]] = None) {
+  class Migrator[R, V <: Version: VersionInfo] private[stamina] (migrations: Map[Int, Migration[R]] = Map.empty, backwardMigration: Option[Migration[R]] = None) {
     def canMigrate(fromVersion: Int): Boolean = migrations.contains(fromVersion) || (backwardMigration.isDefined && fromVersion == Version.numberFor[V] + 1)
 
     def migrate(value: R, fromVersion: Int): R = {
@@ -88,14 +88,14 @@ package migrations {
       }
     }
 
-    def to[NextV <: Version : VersionInfo](migration: Migration[R])(implicit isNextAfter: IsNextVersionAfter[NextV, V]): Migrator[R, NextV] = {
+    def to[NextV <: Version: VersionInfo](migration: Migration[R])(implicit isNextAfter: IsNextVersionAfter[NextV, V]): Migrator[R, NextV] = {
       new Migrator[R, NextV](
         migrations.mapValues(_ && migration) + (Version.numberFor[NextV] → identityMigration[R]),
         None
       )
     }
 
-    def backFrom[NextV <: Version : VersionInfo](migration: Migration[R])(implicit isNextAfter: IsNextVersionAfter[NextV, V]): Migrator[R, V] = {
+    def andBackFrom[NextV <: Version: VersionInfo](migration: Migration[R])(implicit isNextAfter: IsNextVersionAfter[NextV, V]): Migrator[R, V] = {
       new Migrator[R, V](
         migrations,
         Some(migration)

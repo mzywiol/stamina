@@ -52,14 +52,14 @@ package object json {
    * version 1 and can unpersist from both versions 1 and 2.
    * Provided Migrator should be able to migrate values from version 2 back to
    * version 1, it can be achieved by defining it like
-   * `from[V1].backFrom[V2](identity)`.
+   * `from[V1].andBackFrom[V2](identity)`.
    */
   def persister[T: RootJsonFormat: ClassTag](key: String, migrator: JsonMigrator[V1]): JsonPersister[T, V1] = new V1JsonPersister[T](key, migrator)
 
   /**
    * Creates a JsonPersister[T, V] where V is a version greater than V1.
    * It will always persist instances of T to version V but it will use the specified
-   * JsonMigrator[V] to migrate any values older or or one generation younger
+   * JsonMigrator[V] to migrate any values older or one generation newer
    * than version V to version V before unpersisting them.
    */
   def persister[T: RootJsonFormat: ClassTag, V <: Version: VersionInfo: MigratableVersion](key: String, migrator: JsonMigrator[V]): JsonPersister[T, V] = new VnJsonPersister[T, V](key, migrator)

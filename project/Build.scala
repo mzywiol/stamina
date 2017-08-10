@@ -7,8 +7,8 @@ object Build extends Build {
   import Publishing._
 
   lazy val basicSettings = Seq(
-    organization := "com.scalapenos",
-    version := "0.1.4-SNAPSHOT",
+    organization := "com.ocado",
+    version := "0.1.5-SNAPSHOT",
     licenses := Seq("The MIT License (MIT)" -> url("http://opensource.org/licenses/MIT")),
     scalaVersion := "2.12.1",
     crossScalaVersions := Seq("2.11.8", "2.12.1"),

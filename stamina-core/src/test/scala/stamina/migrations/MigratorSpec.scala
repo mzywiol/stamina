@@ -8,17 +8,17 @@ class MigratorSpec extends StaminaSpec {
     from[String, V1]
       .to[V2](_ + "V2")
       .to[V3](_ + "V3")
-      .backFrom[V4](_.replace("V4", ""))
+      .andBackFrom[V4](_.replace("V4", ""))
 
   val mV3WithIgnoredBackwardMigration: Migrator[String, V3] =
     from[String, V1]
       .to[V2](_ + "V2")
-      .backFrom[V3](_ + "this should not be added")
+      .andBackFrom[V3](_ + "this should not be added")
       .to[V3](_ + "V3")
 
   val mV1WithBackwardMigration: Migrator[String, V1] =
     from[String, V1]
-      .backFrom[V2](_.replace("V2", ""))
+      .andBackFrom[V2](_.replace("V2", ""))
 
   "Migrator with backward migration" should {
     "be able to migrate" when {
