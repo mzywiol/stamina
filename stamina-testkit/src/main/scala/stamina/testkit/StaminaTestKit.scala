@@ -36,18 +36,19 @@ trait StaminaTestKit { self: org.scalatest.WordSpecLike ⇒
     }
 
     private def generateStoredVersionsDeserializationTestsFor(sample: PersistableSample[_]): Unit = {
-      latestVersion(sample.persistable).map(latestVersion ⇒
+      val serialized: Option[Persisted] = Try(persisters.persist(sample.persistable)).toOption
+      serialized.flatMap(latestDeserializableVersion).map(latestVersion ⇒
         Range.inclusive(sample.fromVersionNumber, latestVersion).foreach { version ⇒
           s"deserialize the stored serialized form of $sample version $version" in {
-            verifyByteStringDeserialization(sample, version, latestVersion)
+            verifyByteStringDeserialization(sample, version, latestVersion, serialized.get)
           }
         })
     }
 
-    def latestVersion(persistable: AnyRef) = Try(persisters.persisters.filter(_.canPersist(persistable)).map(_.currentVersion).max).toOption
+    def latestDeserializableVersion(persisted: Persisted) =
+      Try(Range(persisted.version, V50.Info.versionNumber).filter(v ⇒ persisters.canUnpersist(persisted.copy(version = v))).max).toOption
 
-    private def verifyByteStringDeserialization(sample: PersistableSample[_], version: Int, latestVersion: Int): Unit = {
-      val serialized = persisters.persist(sample.persistable)
+    private def verifyByteStringDeserialization(sample: PersistableSample[_], version: Int, latestVersion: Int, serialized: Persisted): Unit = {
       byteStringFromResource(serialized.key, version, sample.sampleId) match {
         case Success(binary) ⇒
           persisters.unpersist(binary) should equal(sample.persistable)
