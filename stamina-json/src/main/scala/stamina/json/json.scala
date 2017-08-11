@@ -33,12 +33,14 @@ package object json {
   /** Simple type alias for Migrator[JsValue, V] */
   type JsonMigrator[V <: Version] = Migrator[JsValue, V]
 
+  type JsonForwardMigrator[V <: Version] = ForwardMigrator[JsValue, V]
+
   /**
    * Creates a JsonMigrator[V1] that can function as a builder for
    * creating JsonMigrator[V2], etc. Its migration will be the identity
    * function so calling its migrate function will not have any effect.
    */
-  def from[V <: V1: VersionInfo]: JsonMigrator[V] = migrations.from[JsValue, V]
+  def from[V <: V1: VersionInfo]: JsonForwardMigrator[V] = migrations.from[JsValue, V]
 
   /**
    * Creates a JsonPersister[T, V1], i.e. a JsonPersister that will only persist
