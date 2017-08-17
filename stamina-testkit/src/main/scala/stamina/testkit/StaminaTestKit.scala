@@ -37,19 +37,19 @@ trait StaminaTestKit { self: org.scalatest.WordSpecLike ⇒
 
     private def generateStoredVersionsDeserializationTestsFor(sample: PersistableSample[_]): Unit = {
       val serialized: Option[Persisted] = Try(persisters.persist(sample.persistable)).toOption
-      serialized.flatMap(latestDeserializableVersion).map(latestVersion ⇒
-        Range.inclusive(sample.fromVersionNumber, latestVersion).foreach { version ⇒
+      serialized.flatMap(persisted ⇒ latestVersion(sample.persistable).map(latestVersion ⇒
+        Range.inclusive(sample.fromVersionNumber, latestVersion + 1).foreach { version ⇒
           s"deserialize the stored serialized form of $sample version $version" in {
-            verifyByteStringDeserialization(sample, version, latestVersion, serialized.get)
+            verifyByteStringDeserialization(sample, version, latestVersion, persisted)
           }
-        })
+        }))
     }
 
-    def latestDeserializableVersion(persisted: Persisted) =
-      Try(Range(persisted.version, V50.Info.versionNumber).filter(v ⇒ persisters.canUnpersist(persisted.copy(version = v))).max).toOption
+    def latestVersion(persistable: AnyRef) = Try(persisters.persisters.filter(_.canPersist(persistable)).map(_.currentVersion).max).toOption
 
     private def verifyByteStringDeserialization(sample: PersistableSample[_], version: Int, latestVersion: Int, serialized: Persisted): Unit = {
-      byteStringFromResource(serialized.key, version, sample.sampleId) match {
+      if (version > latestVersion && !persisters.canUnpersist(serialized.copy(version = version))) {}
+      else byteStringFromResource(serialized.key, version, sample.sampleId) match {
         case Success(binary) ⇒
           persisters.unpersist(binary) should equal(sample.persistable)
         case Failure(_: java.io.FileNotFoundException) if version == latestVersion ⇒
@@ -59,10 +59,16 @@ trait StaminaTestKit { self: org.scalatest.WordSpecLike ⇒
             "Please copy the generated serialized data into the project test resources:\n" +
             s"  cp $writtenToPath $$PROJECT_PATH/src/test/resources/$serializedObjectsPackage")
 
+        case Failure(_: java.io.FileNotFoundException) if version > latestVersion ⇒
+          fail(s"You appear to have added a backwards migration for persister with key ${serialized.key}, but the serialized version " +
+            s"of this sample is missing from project resources and thus deserialization of this version cannot be tested.\n" +
+            s"Prepare the serialized file ${filename(serialized.key, version, sample.sampleId)} (BASE64-encoded) and place it under " +
+            s"$$PROJECT_PATH/src/test/resources/$serializedObjectsPackage")
+
         case Failure(_: java.io.FileNotFoundException) if version < latestVersion ⇒
-          fail(s"While testing that the older serialized version $version of sample with key ${serialized.key} and sample id ${sample.sampleId} was not found")
+          fail(s"The older serialized version $version of sample with key ${serialized.key} and sample id ${sample.sampleId} was not found")
         case Failure(other) ⇒
-          fail(s"Failure while decoding serialized version $version of sample with key ${serialized.key} and sample id ${sample.sampleId} was not found", other)
+          fail(s"Failure while decoding serialized version $version of sample with key ${serialized.key} and sample id ${sample.sampleId}", other)
       }
     }
 

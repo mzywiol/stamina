@@ -94,6 +94,25 @@ class ScalatestTestGenerationSpec extends StaminaTestKitSpec {
         spec.testNames should contain("TestDomainSerialization should deserialize the stored serialized form of Item version 2")
       }
     }
+
+    "a sample is available for version 1 and future version 2 for backwards migration" should {
+      class ItemBackwardsPersister(override val key: String) extends ItemPersister(key) {
+        override def canUnpersist(p: Persisted): Boolean = p.key == key && p.version <= currentVersion + 1
+      }
+
+      val spec = new StaminaTestKit with WordSpecLike {
+        val persisters = Persisters(new ItemBackwardsPersister("item1"))
+        "TestDomainSerialization" should {
+          persisters.generateTestsFor(
+            sample(item1)
+          )
+        }
+      }
+
+      "generate tests for sample data for the future version" in {
+        spec.testNames should contain("TestDomainSerialization should deserialize the stored serialized form of Item version 3")
+      }
+    }
   }
 
   def anInstanceOf[T: ClassTag] = {
