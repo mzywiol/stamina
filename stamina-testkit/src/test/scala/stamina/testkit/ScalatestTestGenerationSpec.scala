@@ -92,6 +92,7 @@ class ScalatestTestGenerationSpec extends StaminaTestKitSpec {
       "generate tests for missing sample data for all versions" in {
         spec.testNames should contain("TestDomainSerialization should deserialize the stored serialized form of Item version 1")
         spec.testNames should contain("TestDomainSerialization should deserialize the stored serialized form of Item version 2")
+        spec.testNames shouldNot contain("TestDomainSerialization should deserialize the stored serialized form of Item version 3")
       }
     }
 
@@ -111,6 +112,7 @@ class ScalatestTestGenerationSpec extends StaminaTestKitSpec {
 
       "generate tests for sample data for the future version" in {
         spec.testNames should contain("TestDomainSerialization should deserialize the stored serialized form of Item version 3")
+        spec.testNames shouldNot contain("TestDomainSerialization should deserialize the stored serialized form of Item version 4")
       }
     }
   }
